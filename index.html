@@ -21,11 +21,16 @@
           <video id="video" playsinline autoplay style="width: 1px;"></video>
           <canvas id="canvas" width="400" height="400" style="max-width: 100%;"></canvas>
           <canvas id="otrocanvas" width="224" height="224" style="display: none;"></canvas>
+          <canvas id="otrocanvas_dos" width="150" height="150" style="display: none"></canvas>
         </div> 
       </div>
       <div class="container mt-5">
         <div class="row">
           <div class="col align-self-center">
+            <div><h3 style="font-weight: bold;text-align: center;">CAPAS DENSAS</h3></div> 
+            <center><div id="integrador_uno"></div></center>
+            <div><h3 style="font-weight: bold;text-align: center;">CAPAS CONVOLUCIONALES</h3></div>
+            <center><div id="integrador_tres"></div></center> 
             <div><h2 style="font-weight: bold;text-align: center;">Predicciones</h2></div>
             <div><h3 style="font-weight: bold;text-align: center;">Dataset 200 imagenes</h3></div> 
             <div class="row">
@@ -89,6 +94,9 @@
         modelo500 = await tf.loadGraphModel("tf_modelosmx25_500/model.json");
         modelo600 = await tf.loadGraphModel("tf_modelo25_600/model.json");
         modelodos600 = await tf.loadGraphModel("tf_modelo15_600/model.json");
+
+        integrador_uno = await tf.loadLayersModel("integrador_uno/model.json");
+        integrador_tres = await tf.loadLayersModel("integrador_tres/model.json");
         console.log("Modelo cargado");
       })();
 
@@ -153,6 +161,39 @@
 
           var resultadocuatro = modelodos600.predict(tensor).dataSync();
           drawStacked(resultadocuatro, 'modelo_dos_600'); 
+        }
+
+        if(integrador_uno != null){
+          resample_single(canvas, 100, 100, otrocanvas);
+
+           //Hacer la predicción
+            var ctx2 = otrocanvas.getContext("2d");
+            var imgData = ctx2.getImageData(0,0, 100, 100);
+
+            var arr = [];
+            var arr100 = [];
+
+            for (var p=0; p < imgData.data.length; p+= 4) {
+              var rojo = imgData.data[p] / 255;
+              var verde = imgData.data[p+1] / 255;
+              var azul = imgData.data[p+2] / 255;
+
+              var gris = (rojo+verde+azul)/3;
+
+              arr100.push([gris]);
+              if (arr100.length == 100) {
+                arr.push(arr100);
+                arr100 = [];
+              }
+            }
+
+            arr = [arr];
+
+            var tensor = tf.tensor4d(arr);
+            var resultado1 = integrador_uno.predict(tensor).dataSync();
+            var resultado2 = integrador_tres.predict(tensor).dataSync();
+            drawStacked(resultado1, 'integrador_uno');
+            drawStacked(resultado2, 'integrador_tres');
         }
 
         setTimeout(predecir, 150);
